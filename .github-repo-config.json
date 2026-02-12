@@ -1,0 +1,9 @@
+{
+  "name": "hivemind",
+  "description": "Decentralized AI Compute Network",
+  "public": true,
+  "has_issues": true,
+  "has_wiki": false,
+  "has_downloads": false,
+  "auto_init": false
+}
