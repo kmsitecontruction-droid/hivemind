@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#FFD700">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="HIVEMIND">
+  <title>HIVEMIND - Mobile</title>
+  <link rel="manifest" href="/manifest.json">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    :root {
+      --primary: #FFD700;
+      --primary-dark: #E6C200;
+      --bg: #0a0a0a;
+      --card: #1a1a1a;
+      --text: #ffffff;
+      --text-dim: #888888;
+      --success: #00FF88;
+      --error: #FF4444;
+      --warning: #FFAA00;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+    
+    .header {
+      background: var(--card);
+      padding: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid #333;
+    }
+    
+    .header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .header h1 span {
+      font-size: 24px;
+    }
+    
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      padding: 12px;
+      background: var(--bg);
+      border-radius: 12px;
+    }
+    
+    .status-item {
+      text-align: center;
+    }
+    
+    .status-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    
+    .status-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+    
+    .card {
+      margin: 16px;
+      padding: 16px;
+      background: var(--card);
+      border-radius: 16px;
+    }
+    
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .credits {
+      font-size: 48px;
+      font-weight: 700;
+      text-align: center;
+      padding: 24px;
+      background: linear-gradient(135deg, var(--primary) 0%, #FF9500 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .credits-label {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: #000;
+    }
+    
+    .btn-primary:active {
+      transform: scale(0.98);
+      background: var(--primary-dark);
+    }
+    
+    .btn-secondary {
+      background: #333;
+      color: var(--text);
+    }
+    
+    .worker-status {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: var(--bg);
+      border-radius: 12px;
+      margin-bottom: 8px;
+    }
+    
+    .worker-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    
+    .worker-info {
+      flex: 1;
+    }
+    
+    .worker-name {
+      font-weight: 600;
+      font-size: 16px;
+    }
+    
+    .worker-stats {
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    
+    .worker-status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--card);
+      display: flex;
+      padding: 8px;
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+      border-top: 1px solid #333;
+    }
+    
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px;
+      color: var(--text-dim);
+      font-size: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    
+    .nav-item.active {
+      color: var(--primary);
+    }
+    
+    .nav-item:active {
+      background: rgba(255, 215, 0, 0.1);
+    }
+    
+    .nav-icon {
+      font-size: 24px;
+    }
+    
+    .input-group {
+      margin-bottom: 16px;
+    }
+    
+    .input-label {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+      display: block;
+    }
+    
+    .input {
+      width: 100%;
+      padding: 14px;
+      background: var(--bg);
+      border: 1px solid #333;
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 16px;
+    }
+    
+    .input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
+    .task-item {
+      padding: 16px;
+      background: var(--bg);
+      border-radius: 12px;
+      margin-bottom: 12px;
+    }
+    
+    .task-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .task-id {
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    
+    .task-status {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    
+    .status-completed {
+      background: rgba(0, 255, 136, 0.2);
+      color: var(--success);
+    }
+    
+    .status-pending {
+      background: rgba(255, 170, 0, 0.2);
+      color: var(--warning);
+    }
+    
+    .status-running {
+      background: rgba(0, 150, 255, 0.2);
+      color: #0096FF;
+    }
+    
+    .task-prompt {
+      font-size: 14px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .task-credits {
+      font-size: 12px;
+      color: var(--primary);
+      margin-top: 8px;
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+    
+    .page {
+      padding: 16px;
+    }
+    
+    #page-home .card {
+      background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+    }
+    
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: rgba(0, 255, 136, 0.1);
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--success);
+    }
+    
+    .connection-status.disconnected {
+      background: rgba(255, 68, 68, 0.1);
+      color: var(--error);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1><span>🐝</span> HIVEMIND</h1>
+    <div class="status-bar">
+      <div class="status-item">
+        <div class="status-value" id="totalCredits">0</div>
+        <div class="status-label">Credits</div>
+      </div>
+      <div class="status-item">
+        <div class="status-value" id="activeWorkers">0</div>
+        <div class="status-label">Workers</div>
+      </div>
+      <div class="status-item">
+        <div class="status-value" id="tasksDone">0</div>
+        <div class="status-label">Completed</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOME PAGE -->
+  <div id="page-home" class="page">
+    <div class="card">
+      <div class="card-title">📊 Your Balance</div>
+      <div class="credits" id="creditsDisplay">0</div>
+      <div class="credits-label">Available Credits</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔗 Connection</div>
+      <div class="connection-status" id="connectionStatus">
+        <span>●</span> Connected to network
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⚡ Quick Actions</div>
+      <button class="btn btn-primary" onclick="showPage('submit')" style="margin-bottom: 12px;">
+        📝 Submit Task
+      </button>
+      <button class="btn btn-secondary" onclick="showPage('workers')">
+        👥 View Workers
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 Recent Tasks</div>
+      <div id="recentTasks">
+        <p style="color: var(--text-dim); text-align: center; padding: 20px;">
+          No tasks yet. Submit your first task!
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBMIT TASK PAGE -->
+  <div id="page-submit" class="page hidden">
+    <div class="card">
+      <div class="card-title">📝 Submit New Task</div>
+      
+      <div class="input-group">
+        <label class="input-label">Task Type</label>
+        <select class="input" id="taskType">
+          <option value="inference">AI Inference</option>
+          <option value="embedding">Generate Embeddings</option>
+          <option value="tokenization">Tokenize Text</option>
+        </select>
+      </div>
+      
+      <div class="input-group">
+        <label class="input-label">Your Prompt</label>
+        <textarea class="input" id="taskPrompt" rows="4" placeholder="Enter your prompt here..."></textarea>
+      </div>
+      
+      <div class="input-group">
+        <label class="input-label">Max Tokens</label>
+        <input type="number" class="input" id="taskTokens" value="1000" min="100" max="10000">
+      </div>
+      
+      <button class="btn btn-primary" onclick="submitTask()">
+        🚀 Submit Task
+      </button>
+    </div>
+  </div>
+
+  <!-- WORKERS PAGE -->
+  <div id="page-workers" class="page hidden">
+    <div class="card">
+      <div class="card-title">👥 Network Workers</div>
+      <div id="workersList">
+        <p style="color: var(--text-dim); text-align: center; padding: 20px;">
+          No workers connected yet.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TASKS PAGE -->
+  <div id="page-tasks" class="page hidden">
+    <div class="card">
+      <div class="card-title">📋 All Tasks</div>
+      <div id="allTasksList">
+        <p style="color: var(--text-dim); text-align: center; padding: 20px;">
+          Loading tasks...
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE PAGE -->
+  <div id="page-profile" class="page hidden">
+    <div class="card">
+      <div class="card-title">👤 Your Profile</div>
+      
+      <div class="input-group">
+        <label class="input-label">Username</label>
+        <input type="text" class="input" id="profileUsername" placeholder="Enter username">
+      </div>
+      
+      <div class="input-group">
+        <label class="input-label">Email</label>
+        <input type="email" class="input" id="profileEmail" placeholder="Enter email">
+      </div>
+      
+      <button class="btn btn-primary" onclick="updateProfile()">
+        💾 Save Profile
+      </button>
+    </div>
+
+    <div class="card" style="margin-top: 16px;">
+      <div class="card-title">⚙️ Settings</div>
+      
+      <div class="input-group">
+        <label class="input-label">Max RAM (MB)</label>
+        <input type="number" class="input" id="settingRAM" value="4096">
+      </div>
+      
+      <div class="input-group">
+        <label class="input-label">Max CPU (%)</label>
+        <input type="number" class="input" id="settingCPU" value="80">
+      </div>
+      
+      <button class="btn btn-primary" onclick="saveSettings()">
+        💾 Save Settings
+      </button>
+    </div>
+
+    <div class="card" style="margin-top: 16px;">
+      <button class="btn btn-secondary" onclick="logout()">
+        🚪 Logout
+      </button>
+    </div>
+  </div>
+
+  <!-- NAVIGATION -->
+  <nav class="nav">
+    <div class="nav-item active" onclick="showPage('home')">
+      <div class="nav-icon">🏠</div>
+      <div>Home</div>
+    </div>
+    <div class="nav-item" onclick="showPage('submit')">
+      <div class="nav-icon">📝</div>
+      <div>Submit</div>
+    </div>
+    <div class="nav-item" onclick="showPage('tasks')">
+      <div class="nav-icon">📋</div>
+      <div>Tasks</div>
+    </div>
+    <div class="nav-item" onclick="showPage('workers')">
+      <div class="nav-icon">👥</div>
+      <div>Workers</div>
+    </div>
+    <div class="nav-item" onclick="showPage('profile')">
+      <div class="nav-icon">👤</div>
+      <div>Profile</div>
+    </div>
+  </nav>
+
+  <script>
+    // Mobile HIVEMIND Client
+    const API_URL = localStorage.getItem('SERVER_URL') || 'ws://localhost:3001';
+    let ws = null;
+    let userData = JSON.parse(localStorage.getItem('userData') || '{}');
+
+    // Page navigation
+    function showPage(pageName) {
+      document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+      document.getElementById('page-' + pageName)?.classList.remove('hidden');
+      
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      event?.target?.closest('.nav-item')?.classList.add('active');
+    }
+
+    // WebSocket connection
+    function connect() {
+      ws = new WebSocket(API_URL);
+      
+      ws.onopen = () => {
+        document.getElementById('connectionStatus').innerHTML = '<span>●</span> Connected';
+        document.getElementById('connectionStatus').classList.remove('disconnected');
+        register();
+      };
+      
+      ws.onclose = () => {
+        document.getElementById('connectionStatus').innerHTML = '<span>●</span> Disconnected';
+        document.getElementById('connectionStatus').classList.add('disconnected');
+        setTimeout(connect, 3000);
+      };
+      
+      ws.onerror = () => {
+        document.getElementById('connectionStatus').innerHTML = '<span>●</span> Connection Error';
+        document.getElementById('connectionStatus').classList.add('disconnected');
+      };
+      
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        handleMessage(data);
+      };
+    }
+
+    function register() {
+      ws.send(JSON.stringify({
+        type: 'user:register',
+        payload: {
+          username: userData.username || 'guest',
+          email: userData.email || ''
+        }
+      }));
+    }
+
+    function handleMessage(data) {
+      switch (data.type) {
+        case 'user:registered':
+          userData.id = data.payload.id;
+          localStorage.setItem('userData', JSON.stringify(userData));
+          updateDisplay();
+          break;
+        case 'credits:update':
+          userData.credits = data.payload.credits;
+          localStorage.setItem('userData', JSON.stringify(userData));
+          updateDisplay();
+          break;
+        case 'task:submitted':
+          alert('Task submitted successfully!');
+          showPage('tasks');
+          break;
+      }
+    }
+
+    function updateDisplay() {
+      document.getElementById('totalCredits').textContent = userData.credits || 0;
+      document.getElementById('creditsDisplay').textContent = userData.credits || 0;
+      document.getElementById('profileUsername').value = userData.username || '';
+      document.getElementById('profileEmail').value = userData.email || '';
+    }
+
+    function submitTask() {
+      const prompt = document.getElementById('taskPrompt').value;
+      const type = document.getElementById('taskType').value;
+      const tokens = document.getElementById('taskTokens').value;
+      
+      if (!prompt.trim()) {
+        alert('Please enter a prompt');
+        return;
+      }
+      
+      ws.send(JSON.stringify({
+        type: 'task:submit',
+        payload: {
+          type,
+          prompt,
+          maxTokens: parseInt(tokens),
+          userId: userData.id
+        }
+      }));
+    }
+
+    function updateProfile() {
+      userData.username = document.getElementById('profileUsername').value;
+      userData.email = document.getElementById('profileEmail').value;
+      localStorage.setItem('userData', JSON.stringify(userData));
+      alert('Profile updated!');
+    }
+
+    function saveSettings() {
+      const ram = document.getElementById('settingRAM').value;
+      const cpu = document.getElementById('settingCPU').value;
+      localStorage.setItem('settings', JSON.stringify({ ram, cpu }));
+      alert('Settings saved!');
+    }
+
+    function logout() {
+      localStorage.removeItem('userData');
+      userData = {};
+      location.reload();
+    }
+
+    // Initialize
+    updateDisplay();
+    connect();
+    
+    // PWA Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>

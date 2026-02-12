@@ -1,0 +1,22 @@
+{
+  "name": "@hive-ai/hivemind",
+  "version": "1.0.0",
+  "description": "HIVEMIND - Decentralized AI Compute Network",
+  "private": true,
+  "workspaces": [
+    "dist/*"
+  ],
+  "scripts": {
+    "install:all": "npm run install --workspaces",
+    "dev:all": "echo 'Use individual package dev commands'",
+    "build:all": "npm run build --workspaces"
+  },
+  "keywords": [
+    "hivemind",
+    "ai",
+    "distributed-computing",
+    "decentralized"
+  ],
+  "author": "HIVEMIND",
+  "license": "MIT"
+}

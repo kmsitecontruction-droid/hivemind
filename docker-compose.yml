@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # Main HIVEMIND Server
+  hivemind-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hivemind-server
+    ports:
+      - "3001:8080"
+    environment:
+      - SERVER_PORT=8080
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - hivemind-data:/app/data
+
+  # Web Dashboard
+  hivemind-web:
+    image: node:20-alpine
+    container_name: hivemind-web
+    working_dir: /app
+    command: sh -c "cd web && npx serve -s -l 3000"
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    volumes:
+      - ./dist/web:/app/web:ro
+
+  # Admin Dashboard
+  hivemind-admin:
+    image: node:20-alpine
+    container_name: hivemind-admin
+    working_dir: /app
+    command: sh -c "cd admin && npx serve -s -l 3003"
+    ports:
+      - "3003:3003"
+    restart: unless-stopped
+    volumes:
+      - ./dist/admin:/app/admin:ro
+
+volumes:
+  hivemind-data:
+    driver: local
+
+networks:
+  default:
+    name: hivemind-network
