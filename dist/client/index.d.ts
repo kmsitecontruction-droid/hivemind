@@ -3,6 +3,9 @@
  * Complete worker implementation with sandbox, network, and resource management
  */
 import { ResourceManager } from './sandbox/sandbox.js';
+import { SUPPORTED_MODELS, ModelStatus } from './models/manager.js';
+export { SUPPORTED_MODELS };
+export type { ModelStatus };
 export interface ClientConfig {
     serverUrl: string;
     maxMemoryMB?: number;
@@ -55,6 +58,14 @@ export declare class HiveDrone {
      * Initialize and start the drone
      */
     start(): Promise<void>;
+    /**
+     * Show current model cache status
+     */
+    private showModelStatus;
+    /**
+     * Download a model
+     */
+    downloadModel(modelId: string): Promise<boolean>;
     /**
      * Set up network event handlers
      */

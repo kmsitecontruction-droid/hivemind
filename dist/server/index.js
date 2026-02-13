@@ -227,23 +227,8 @@ class HiveServer {
     handleTaskComplete(workerId, payload) {
         const task = this.tasks.complete(payload.taskId, payload.result);
         if (task) {
-            // Calculate fractional credits based on worker resources
-            // Formula: credits = base × (ram_gb / 1GB) × (cores / 1) × reputation
-            const worker = this.workers.getById(workerId);
-            const baseCredits = task.creditsEstimate || 1.0;
-            
-            // Get worker resources (convert bytes to GB)
-            const ramGB = worker?.memoryBytes ? worker.memoryBytes / (1024 * 1024 * 1024) : 1;
-            const cores = worker?.cpuCores || 1;
-            const reputation = worker?.reputation || 1.0;
-            
-            // Calculate fractional credits
-            const fractionalCredits = baseCredits * (ramGB / 1) * (cores / 1) * reputation;
-            
-            this.credits.awardEarnings(workerId, fractionalCredits, task.id);
-            this.workers.recordTaskCompletion(workerId, fractionalCredits);
-            
-            console.log(`💰 Awarded ${fractionalCredits.toFixed(4)} credits to worker ${workerId} (${ramGB.toFixed(2)}GB RAM, ${cores} cores, rep=${reputation})`);
+            this.credits.awardEarnings(workerId, task.creditsEstimate, task.id);
+            this.workers.recordTaskCompletion(workerId, task.creditsEstimate);
         }
     }
     handleTaskFailed(workerId, payload) {

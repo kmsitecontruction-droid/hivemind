@@ -4,6 +4,8 @@
  */
 import { HiveNetwork } from './network/network.js';
 import { ResourceManager } from './sandbox/sandbox.js';
+import { SUPPORTED_MODELS } from './models/manager.js';
+export { SUPPORTED_MODELS };
 export class HiveDrone {
     network;
     resources;
@@ -34,19 +36,46 @@ export class HiveDrone {
      */
     async start() {
         console.log('🚀 Starting HIVEMIND Drone...');
-        // Initialize resource detection with custom limits
-        await this.resources.initialize(this.config.maxMemoryMB, this.config.maxCPUPercent);
+        // Initialize resource detection (includes model manager)
+        await this.resources.initialize();
+        // Show model status
+        await this.showModelStatus();
         // Set up network event handlers
         this.setupNetworkHandlers();
-        // Start lag monitoring for auto-throttling
-        this.startLagMonitoring();
         // Connect to network
         await this.network.connect();
         this.running = true;
         // Start task polling loop
         this.startTaskLoop();
         console.log('✅ Drone is running!');
-        console.log(`📊 Config: ${Math.round(this.config.maxMemoryMB / 1024)}GB RAM, ${this.config.maxCPUPercent}% CPU`);
+        console.log('📊 Status: Type /status to see stats');
+    }
+    /**
+     * Show current model cache status
+     */
+    async showModelStatus() {
+        const models = this.resources.getAvailableModels();
+        const downloaded = models.filter(m => m.downloaded);
+        console.log('\n🧠 Model Cache:');
+        if (downloaded.length === 0) {
+            console.log('   No models downloaded yet.');
+            console.log('   Run with --download-model <id> to download');
+            console.log('   Available: tinyllama-1.1b, llama-3.2-1b, qwen-2.5-1.5b');
+        }
+        else {
+            console.log(`   ${downloaded.length} model(s) ready:`);
+            for (const m of downloaded) {
+                console.log(`   • ${m.config.name} (${m.cacheSizeMB}MB)`);
+            }
+        }
+        console.log('');
+    }
+    /**
+     * Download a model
+     */
+    async downloadModel(modelId) {
+        console.log(`⬇️  Downloading model: ${modelId}`);
+        return await this.resources.downloadModel(modelId);
     }
     /**
      * Set up network event handlers
@@ -64,48 +93,6 @@ export class HiveDrone {
         this.network.on('error', (error) => {
             console.error('Network error:', error.message);
         });
-    }
-    /**
-     * Start monitoring for system lag and auto-throttle if needed
-     */
-    startLagMonitoring() {
-        this.lagCheckInterval = setInterval(async () => {
-            if (!this.running)
-                return;
-            const status = this.resources.getStatus();
-            const avgCPU = status.averageUsage?.cpu || 0;
-            const avgMem = status.averageUsage?.memory || 0;
-            // Detect lag: high CPU or memory usage over time
-            if (avgCPU > 85 || avgMem > 90) {
-                if (!this.lagDetected) {
-                    this.lagDetected = true;
-                    console.log(`⚠️ Lag detected! CPU: ${avgCPU.toFixed(1)}%, Memory: ${avgMem.toFixed(1)}%`);
-                    console.log('🔄 Auto-reducing resources...');
-                    this.autoThrottle();
-                }
-            }
-            else if (avgCPU < 50 && avgMem < 60 && this.lagDetected) {
-                // System stabilized, try to restore
-                console.log('✅ System stabilized, restoring resources...');
-                this.lagDetected = false;
-            }
-        }, 15000);
-    }
-    /**
-     * Automatically reduce resources when lag is detected
-     */
-    autoThrottle() {
-        // Reduce by 15% each time, minimum floor
-        const minRAMMB = 512; // 0.5GB minimum
-        const minCPUPercent = 25; // 0.25 cores minimum
-        this.config.maxMemoryMB = Math.max(minRAMMB, Math.round(this.config.maxMemoryMB * 0.85));
-        this.config.maxCPUPercent = Math.max(minCPUPercent, Math.round(this.config.maxCPUPercent * 0.85));
-        console.log(`📉 Throttled to ${Math.round(this.config.maxMemoryMB / 1024)}GB RAM, ${this.config.maxCPUPercent}% CPU`);
-        // Update resources if possible
-        if (this.resources?.executor?.config) {
-            this.resources.executor.config.maxMemoryMB = this.config.maxMemoryMB;
-            this.resources.executor.config.maxCPUPercent = this.config.maxCPUPercent;
-        }
     }
     /**
      * Start periodic task polling

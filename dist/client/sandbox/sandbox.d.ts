@@ -28,7 +28,14 @@ export declare class SandboxedExecutor {
     private config;
     private activeTasks;
     private dockerAvailable;
+    private modelManager;
+    private inferenceEngine;
+    private initialized;
     constructor(config?: Partial<SandboxConfig>);
+    /**
+     * Initialize the executor - check dependencies and scan models
+     */
+    initialize(): Promise<void>;
     /**
      * Check if Docker is available for containerized execution
      */
@@ -43,8 +50,25 @@ export declare class SandboxedExecutor {
     private executeWithDocker;
     /**
      * Execute with OS-level resource limits (fallback)
+     * Uses real inference if available, otherwise simulates
      */
     private executeWithLimits;
+    /**
+     * Execute real AI inference using the inference engine
+     */
+    private executeRealInference;
+    /**
+     * Simulated task execution (fallback when no models available)
+     */
+    private executeSimulated;
+    /**
+     * Get available models for this executor
+     */
+    getAvailableModels(): import("../index.js").ModelStatus[];
+    /**
+     * Download a model for inference
+     */
+    downloadModel(modelId: string): Promise<boolean>;
     /**
      * Get current executor statistics
      */
@@ -91,6 +115,14 @@ export declare class ResourceManager {
     private gpuInfo;
     constructor();
     initialize(): Promise<void>;
+    /**
+     * Get available models
+     */
+    getAvailableModels(): import("../index.js").ModelStatus[];
+    /**
+     * Download a model
+     */
+    downloadModel(modelId: string): Promise<boolean>;
     /**
      * Calculate how many shards this device can handle
      */

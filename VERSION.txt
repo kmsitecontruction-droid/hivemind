@@ -1,18 +1,1 @@
-HIVEMIND v1.0.0
-===============
-
-Build Date: 2026-02-10
-Status: Public Release
-
-Components:
-- CLI: Ready to run
-- Web Dashboard: Ready to run
-- Worker: Ready to run
-- Docker Runtime: Ready
-
-Requirements:
-- Node.js 18+
-- Docker (optional, for sandboxed tasks)
-- 4GB RAM minimum
-
-For setup instructions, see README.md
+1.0.0

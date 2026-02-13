@@ -4,232 +4,185 @@
 
 ---
 
-## 📚 Documentation
-
-- [Quick Start](#quick-start) - Get running in 5 minutes
-- [Dynamic Resources](#-dynamic-resources-new) - Configure precise resource allocation
-- [AWS Setup Guide](./AWS_SETUP.md) - Deploy on AWS Free Tier
-- [Architecture](./ARCHITECTURE.md) - System design
-
----
-
-## What is HIVEMIND?
-
-HIVEMIND is a network where people worldwide share their unused computer resources (CPU, GPU, RAM) to run AI models together. In exchange, you earn credits to use the network.
-
----
-
-## Quick Start
+## ⚡ Quick Start
 
 ```bash
-# Install CLI
-cd hivemind/dist/cli
-npm install --production
+# Clone or download this package
+cd HIVEMIND
 
-# Run setup wizard
-npm start
-```
+# Run with one command
+./hivemind.sh infer "Hello AI!"
 
-The wizard will guide you through:
-1. Setting your resource limits
-2. Connecting to a HIVEMIND server
-3. Start contributing
-
----
-
-## Components
-
-### CLI (Terminal Interface)
-```bash
-cd hivemind/dist/cli
-npm start
-```
-
-**Features:**
-- Interactive setup wizard
-- Real-time monitoring
-- Security warnings
-- Resource configuration
-
-### Web Dashboard
-```bash
-cd hivemind/dist/web
-npm install --production
-npm run preview
-```
-Open: http://localhost:3000
-
-### Worker (Background Process)
-```bash
-cd hivemind/dist/client
-npm install --production
-npm start
+# Or use Python directly
+pip install -r requirements.txt
+python hivemind-cli.py infer "Your prompt here"
 ```
 
 ---
 
-## Configuration
+## 🎯 What is HIVEMIND?
 
-Copy `.env.example` to `.env` and configure:
+HIVEMIND is a **decentralized AI supercomputer** that lets people worldwide share their unused computer resources to run AI models together.
+
+### How It Works
+
+1. **Download a model** (just 5-30MB with sharding!)
+2. **Join the network** as a worker
+3. **Earn credits** by contributing compute
+4. **Spend credits** to run AI queries
+
+### Storage Magic
+
+With **model sharding**, the model is split across thousands of PCs:
+
+| Peers | Storage/PC | Model |
+|-------|------------|-------|
+| 10 | 300MB | 3GB |
+| 100 | 30MB | 3GB |
+| 1000 | 3MB | 3GB |
+
+---
+
+## 📦 What's Included
+
+| File | Purpose |
+|------|---------|
+| `hivemind.sh` | One-script startup (recommended) |
+| `hivemind-cli.py` | Main CLI with all features |
+| `server-p2p.py` | P2P server for network mode |
+| `worker-p2p.py` | Worker client |
+| `requirements.txt` | Python dependencies |
+
+---
+
+## 🚀 Commands
+
+### Local Inference (no network needed)
 
 ```bash
-SERVER_URL=ws://YOUR_SERVER_IP:3001
-DASHBOARD_URL=http://YOUR_SERVER_IP:3000
+# Run inference
+./hivemind.sh infer "Explain quantum computing"
+./hivemind.sh infer "Write a poem about AI"
+
+# Download models
+./hivemind.sh download tinyllama-1.1b
+./hivemind.sh download qwen-2.5-1.5b
+
+# List models
+python hivemind-cli.py list
+
+# Test
+python hivemind-cli.py test
 ```
 
-Get the server URL from the network operator.
+### Network Mode (run your own network)
+
+```bash
+# Terminal 1: Start server
+./hivemind.sh server
+
+# Terminal 2+: Add workers
+./hivemind.sh worker ws://localhost:3001
+./hivemind.sh worker ws://localhost:3001
+```
+
+### Python Direct
+
+```bash
+python hivemind-cli.py infer "Hello!"
+python hivemind-cli.py download tinyllama-1.1b
+python hivemind-cli.py status
+python hivemind-cli.py storage qwen-2.5-1.5b
+```
 
 ---
 
-## Requirements
+## 🧠 Available Models
 
-- **OS**: macOS, Linux, or Windows with WSL
-- **RAM**: 4GB minimum
-- **CPU**: Any modern processor
-- **Storage**: 500MB free
-- **Internet**: Stable connection
+| Model | Size | Best For |
+|-------|------|----------|
+| **tinyllama-1.1b** | 1.2GB | Fast, low RAM |
+| **qwen-2.5-1.5b** | 3GB | Long context (32K) |
+| **llama-3.2-1b** | 2GB | Meta quality |
+| **llama-3.2-3b** | 4.5GB | Best quality |
+| **phi-3-mini** | 3.5GB | Microsoft |
+| **gemma-2b** | 4GB | Google |
 
 ---
 
-## Security
+## ☁️ Deploy to Cloud
 
-Your privacy is protected:
+### Railway (Recommended - Free Tier)
+
+```bash
+# Deploy server
+./deploy-railway.sh
+
+# Or manually:
+# 1. Push to GitHub
+# 2. Connect to Railway.app
+# 3. Set PORT=3001
+# 4. Deploy!
+```
+
+### AWS EC2
+
+```bash
+./deploy-aws.sh
+```
+
+### Any VPS
+
+```bash
+./deploy.sh
+```
+
+---
+
+## 🔧 Requirements
+
+- Python 3.8+
+- 4GB RAM (for local inference)
+- Internet connection
+
+---
+
+## 📡 Architecture
+
+```
+                    ┌─────────────┐
+                    │   Server    │
+                    │  (You!)    │
+                    └──────┬──────┘
+                           │
+         ┌─────────────────┼─────────────────┐
+         │                 │                 │
+         ▼                 ▼                 ▼
+    ┌─────────┐      ┌─────────┐       ┌─────────┐
+    │ Worker  │      │ Worker  │       │ Worker  │
+    │   #1   │      │   #2    │       │   #3    │
+    │ Shard 1│      │ Shard 2 │       │ Shard 3 │
+    └─────────┘      └─────────┘       └─────────┘
+    
+    Each worker runs 1 layer of the model!
+```
+
+---
+
+## 🔐 Security
 
 - ✅ Tasks run in isolated containers
-- ✅ No filesystem access
-- ✅ No network access from tasks
-- ✅ You control resource limits
-- ✅ Must approve before running tasks
+- ✅ No filesystem access from tasks  
+- ✅ No network access (except server)
+- ✅ Your data stays local
 
 ---
 
-## Credits
+## 📄 License
 
-| Action | Credits |
-|--------|---------|
-| Complete task (1GB, 1 core) | +1 credit |
-| GPU contribution | 2x credits |
-| Run query | -1 credit/1000 tokens |
+MIT License
 
 ---
 
-## 🎚️ Dynamic Resources (NEW!)
-
-You can now configure **precise amounts** of resources to share - not just all or nothing!
-
-### Configure Your Resources
-
-```bash
-# Share exactly 1.5GB RAM and 0.8 CPU cores
-npm start -- drone --ram=1.5 --cores=0.8
-
-# Share 4GB RAM and 2 cores
-npm start -- drone --ram=4 --cores=2
-
-# Share 8GB RAM, 4 cores, 2GB GPU
-npm start -- drone --ram=8 --cores=4 --gpu=2
-```
-
-### Resource Slider (Interactive Mode)
-
-When running `npm start`, the wizard asks:
-
-```
-How much RAM do you want to share? [1.5GB] ▸
-  Use arrow keys or enter exact value (0.5 - 16GB)
-
-How many CPU cores? [1.0] ▸
-  Use arrow keys or enter exact value (0.5 - max cores)
-
-Want to share GPU memory? [0GB] ▸
-  Enter 0.5, 1, 2, 4, 8 GB
-```
-
-### Available Range
-
-| Resource | Min | Max | Increment |
-|----------|-----|-----|-----------|
-| RAM | 0.5 GB | 512 GB | 0.1 GB |
-| CPU Cores | 0.5 | 128 | 0.1 |
-| GPU VRAM | 0 GB | 64 GB | 0.5 GB |
-| Storage | 10 GB | 4 TB | 1 GB |
-
-### Credit Multiplier Formula
-
-```
-Credits = Base × (RAM_GB / 1) × (Cores / 1) × (GPU_GB / 1) × Reputation
-```
-
-**Examples:**
-
-| Config | Calculation | Credits/Task |
-|--------|-------------|--------------|
-| 0.5GB RAM, 0.5 cores | 1 × 0.5 × 0.5 | 0.25 |
-| 1GB RAM, 1 core | 1 × 1 × 1 | 1.0 |
-| 2GB RAM, 1 core | 1 × 2 × 1 | 2.0 |
-| 4GB RAM, 2 cores | 1 × 4 × 2 | 8.0 |
-| 8GB RAM, 4 cores, 2GB GPU | 1 × 8 × 4 × 2 | 64.0 |
-
-### 🔄 Auto-Throttling
-
-If your system lags while running tasks, HIVEMIND automatically reduces resources:
-
-```
-Starting with: 4GB RAM, 2 cores
-                    ↓
-          Lag detected (>500ms response)
-                    ↓
-        Auto-reduce to: 3.5GB RAM
-                    ↓
-          Still slow?
-                    ↓
-        Auto-reduce to: 3GB RAM
-                    ↓
-          Stable! ✓
-```
-
-The system finds the **sweet spot** automatically.
-
-### AWS Free Tier Example
-
-AWS t2.micro has 1GB RAM. Configure for optimal performance:
-
-```bash
-npm start -- drone --ram=0.8 --cores=0.5 --max-tasks=2
-```
-
-This leaves headroom for system processes and prevents OOM kills.
-
----
-
-## 📊 Network Capacity
-
-With 10,000 contributors:
-
-| Config | Total RAM | Total Cores |
-|--------|-----------|-------------|
-| 4GB each | 40 TB | 40,000 |
-| 8GB each | 80 TB | 80,000 |
-| 16GB each | 160 TB | 160,000 |
-
----
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `npm start` | Launch CLI |
-| `status` | View status |
-| `pause` | Stop temporarily |
-| `resume` | Resume |
-| `stop` | Exit |
-
----
-
-## Support
-
-See the docs/ folder or contact your network operator.
-
----
-
-**Version**: 1.0.0
+**Version:** 1.0.0  
+**Website:** https://hivemind.ai

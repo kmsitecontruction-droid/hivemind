@@ -19,6 +19,7 @@ import { createInterface } from 'readline';
 import { HiveDrone } from './commands/drone.js';
 import { InteractiveSetup } from './ui/setup.js';
 import { Monitor } from './ui/monitor.js';
+import { ModelManagerCLI } from './ui/models.js';
 const BANNER = `
 ${chalk.yellow('╔════════════════════════════════════════════════════════════════╗')}
 ${chalk.yellow('║')}                                                                ${chalk.yellow('║')}
@@ -55,6 +56,15 @@ async function main() {
         await quickJoin();
         return;
     }
+    // Model management commands
+    if (args.includes('models') || args.includes('model')) {
+        await runModelManager(args);
+        return;
+    }
+    if (args.includes('--models') || args.includes('--model')) {
+        await runModelManager(args);
+        return;
+    }
     // Interactive main menu
     await showMainMenu();
 }
@@ -70,14 +80,23 @@ ${chalk.bold('OPTIONS')}
   --monitor, -m    Run in monitoring mode
   --quick          Quick join with default settings
   --dashboard      Open web dashboard in browser
+  --models         Manage AI models (--models --list, --models --download <id>)
   --status         Show current status
   --help, -h       Show this help message
 
+${chalk.bold('MODEL COMMANDS')}
+  hivemind models --list                List available models
+  hivemind models --download <id>      Download a model
+  hivemind models --interactive        Interactive download
+  hivemind models --test [model]       Run test inference
+
 ${chalk.bold('EXAMPLES')}
-  hivemind --setup          # Run the interactive setup wizard
-  hivemind --monitor        # Monitor your contribution in real-time
-  hivemind --dashboard      # Open the web dashboard
-  hivemind --quick          # Join with default settings
+  hivemind --setup                # Run the interactive setup wizard
+  hivemind --monitor              # Monitor your contribution in real-time
+  hivemind --dashboard            # Open the web dashboard
+  hivemind models --list         # List available AI models
+  hivemind models --download tinyllama-1.1b
+  hivemind --quick                # Join with default settings
 
 ${chalk.bold('DOCUMENTATION')}
   https://docs.hivemind.ai
@@ -101,6 +120,10 @@ async function showMainMenu() {
                     value: 'dashboard'
                 },
                 {
+                    name: `${chalk.cyan('🧠')} Models - Download & manage AI models`,
+                    value: 'models'
+                },
+                {
                     name: `${chalk.yellow('⚙️')} Settings - Configure your contribution`,
                     value: 'settings'
                 },
@@ -117,6 +140,9 @@ async function showMainMenu() {
             break;
         case 'dashboard':
             await openDashboard();
+            break;
+        case 'models':
+            await runModelManager(['--interactive']);
             break;
         case 'settings':
             await showSettings();
@@ -137,6 +163,31 @@ async function runMonitor() {
     console.log(BANNER);
     const monitor = new Monitor();
     await monitor.run();
+}
+async function runModelManager(args) {
+    const modelMgr = new ModelManagerCLI();
+    if (args.includes('--list') || args.includes('-l') || args.includes('list')) {
+        await modelMgr.listModels();
+    }
+    else if (args.includes('--download') || args.includes('-d') || args.includes('download')) {
+        const modelId = args[args.indexOf('--download') + 1] || args[args.indexOf('-d') + 1] || args[args.indexOf('download') + 1];
+        if (modelId && !modelId.startsWith('-')) {
+            await modelMgr.downloadModel(modelId);
+        }
+        else {
+            await modelMgr.interactiveDownload();
+        }
+    }
+    else if (args.includes('--interactive') || args.includes('-i') || args.includes('interactive')) {
+        await modelMgr.interactiveDownload();
+    }
+    else if (args.includes('--test') || args.includes('test')) {
+        const modelId = args.includes('--model') ? args[args.indexOf('--model') + 1] : undefined;
+        await modelMgr.testInference(modelId);
+    }
+    else {
+        await modelMgr.listModels();
+    }
 }
 async function quickJoin() {
     console.clear();

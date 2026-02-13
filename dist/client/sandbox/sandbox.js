@@ -4,10 +4,15 @@
  */
 import { spawn, exec } from 'child_process';
 import si from 'systeminformation';
+import { ModelManager } from '../models/manager.js';
+import { InferenceEngine } from '../models/inference.js';
 export class SandboxedExecutor {
     config;
     activeTasks = new Map();
     dockerAvailable = null;
+    modelManager;
+    inferenceEngine;
+    initialized = false;
     constructor(config = {}) {
         this.config = {
             maxMemoryMB: config.maxMemoryMB || 4096,
@@ -15,6 +20,26 @@ export class SandboxedExecutor {
             maxTimeSeconds: config.maxTimeSeconds || 300,
             maxConcurrentTasks: config.maxConcurrentTasks || 2
         };
+        this.modelManager = new ModelManager();
+        this.inferenceEngine = new InferenceEngine();
+    }
+    /**
+     * Initialize the executor - check dependencies and scan models
+     */
+    async initialize() {
+        if (this.initialized)
+            return;
+        console.log('🔧 Initializing Sandbox Executor...');
+        await this.modelManager.initialize();
+        await this.inferenceEngine.initialize();
+        // Check dependencies
+        const deps = await this.modelManager.checkDependencies();
+        if (!deps.transformers) {
+            console.warn('⚠️  Transformers not available. Tasks will be simulated.');
+            console.warn('   Install with: pip install transformers torch sentence-transformers');
+        }
+        this.initialized = true;
+        console.log('✅ Sandbox Executor ready');
     }
     /**
      * Check if Docker is available for containerized execution
@@ -140,89 +165,106 @@ export class SandboxedExecutor {
     }
     /**
      * Execute with OS-level resource limits (fallback)
+     * Uses real inference if available, otherwise simulates
      */
     async executeWithLimits(task, startTime) {
-        return new Promise((resolve) => {
-            const startMemory = process.memoryUsage().heapUsed;
-            // Simulated task execution (placeholder for actual model inference)
-            // In production, this would load the model and run inference
-            const taskScript = `
-        const si = require('systeminformation');
-        async function run() {
-          const start = Date.now();
-          // Simulate inference time
-          await new Promise(r => setTimeout(r, 100));
-          
-          const mem = process.memoryUsage();
-          const cpu = await si.currentLoad();
-          console.log(JSON.stringify({
-            output: "Simulated inference result",
-            memoryUsed: Math.round(mem.heapUsed / 1024 / 1024),
-            cpuUsed: cpu.currentload
-          }));
+        const deps = await this.modelManager.checkDependencies();
+        // Use real inference if transformers is available
+        if (deps.transformers && task.modelPath) {
+            return this.executeRealInference(task, startTime);
         }
-        run().catch(e => console.error(e.message));
-      `;
-            const proc = spawn('node', ['-e', taskScript], {
-                stdio: ['ignore', 'pipe', 'pipe'],
-                env: {
-                    ...process.env,
-                    UV_THREADPOOL_SIZE: '4'
-                }
-            });
-            let stdout = '';
-            let stderr = '';
-            proc.stdout.on('data', (data) => {
-                stdout += data.toString();
-            });
-            proc.stderr.on('data', (data) => {
-                stderr += data.toString();
-            });
-            const timeout = setTimeout(() => {
-                proc.kill('SIGKILL');
-                resolve({
-                    success: false,
-                    error: 'Execution timeout',
-                    memoryUsedMB: this.config.maxMemoryMB,
-                    executionTimeMs: this.config.maxTimeSeconds * 1000,
-                    timedOut: true
-                });
-            }, this.config.maxTimeSeconds * 1000);
-            proc.on('close', (code) => {
-                clearTimeout(timeout);
-                const executionTime = Date.now() - startTime;
-                if (code === 0) {
-                    try {
-                        const output = JSON.parse(stdout.trim());
-                        resolve({
-                            success: true,
-                            output,
-                            memoryUsedMB: output.memoryUsed || 0,
-                            executionTimeMs: executionTime,
-                            timedOut: false
-                        });
-                    }
-                    catch {
-                        resolve({
-                            success: true,
-                            output: { raw: stdout },
-                            memoryUsedMB: 0,
-                            executionTimeMs: executionTime,
-                            timedOut: false
-                        });
-                    }
+        // Fallback to simulation
+        return this.executeSimulated(task, startTime);
+    }
+    /**
+     * Execute real AI inference using the inference engine
+     */
+    async executeRealInference(task, startTime) {
+        try {
+            const request = {
+                modelId: task.modelPath || 'tinyllama-1.1b',
+                prompt: task.prompt,
+                type: task.type === 'embedding' ? 'embedding' :
+                    task.type === 'inference' ? 'text-generation' : 'chat',
+                maxTokens: task.maxTokens || 256,
+                temperature: task.temperature || 0.7
+            };
+            // Check if model is downloaded, if not use a default
+            if (!this.modelManager.isModelReady(request.modelId)) {
+                // Try to find a downloaded model or recommend one
+                const recommended = this.modelManager.recommendModel(this.config.maxMemoryMB / 1024);
+                if (recommended && this.modelManager.isModelReady(recommended.id)) {
+                    request.modelId = recommended.id;
                 }
                 else {
-                    resolve({
-                        success: false,
-                        error: stderr || `Process exited with code ${code}`,
-                        memoryUsedMB: this.config.maxMemoryMB,
-                        executionTimeMs: executionTime,
-                        timedOut: false
-                    });
+                    // No models available - simulate
+                    console.log(`⚠️  No models available for ${task.modelPath}, simulating...`);
+                    return this.executeSimulated(task, startTime);
                 }
-            });
+            }
+            console.log(`🤖 Running inference with ${request.modelId}...`);
+            const result = await this.inferenceEngine.runInference(request);
+            return {
+                success: result.success,
+                output: result.output ? { text: result.output, tokens: result.tokensGenerated } : undefined,
+                error: result.error,
+                memoryUsedMB: result.memoryUsedMB,
+                executionTimeMs: result.executionTimeMs,
+                timedOut: false
+            };
+        }
+        catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Inference error',
+                memoryUsedMB: 0,
+                executionTimeMs: Date.now() - startTime,
+                timedOut: false
+            };
+        }
+    }
+    /**
+     * Simulated task execution (fallback when no models available)
+     */
+    executeSimulated(task, startTime) {
+        return new Promise((resolve) => {
+            // More realistic simulation based on prompt length
+            const promptLength = task.prompt.length;
+            const simulatedTime = Math.min(2000, 100 + promptLength * 2);
+            const simulatedTokens = Math.floor(promptLength * 0.3);
+            setTimeout(() => {
+                resolve({
+                    success: true,
+                    output: {
+                        text: `Simulated response to: "${task.prompt.substring(0, 50)}${task.prompt.length > 50 ? '...' : ''}"\n\n[This is a simulated output. Download a model with: hivemind --models]`,
+                        tokens: simulatedTokens,
+                        simulated: true
+                    },
+                    memoryUsedMB: Math.floor(Math.random() * 500 + 100),
+                    executionTimeMs: simulatedTime,
+                    timedOut: false
+                });
+            }, simulatedTime);
         });
+    }
+    /**
+     * Get available models for this executor
+     */
+    getAvailableModels() {
+        return this.modelManager.getAvailableModels();
+    }
+    /**
+     * Download a model for inference
+     */
+    async downloadModel(modelId) {
+        try {
+            await this.modelManager.downloadModel(modelId);
+            return true;
+        }
+        catch (error) {
+            console.error('Failed to download model:', error);
+            return false;
+        }
     }
     /**
      * Get current executor statistics
@@ -318,12 +360,26 @@ export class ResourceManager {
             vramMB: (g.vram || 0) * 1024,
             computeUnits: g.cores || 0
         })) || [];
+        // Initialize executor (loads model manager and inference engine)
+        await this.executor.initialize();
         // Start monitoring
         this.monitor.start(1000);
         console.log(`📊 Resource Manager initialized:`);
         console.log(`   RAM: ${this.availableMemoryMB}MB available`);
         console.log(`   CPU: ${this.availableCPU}% available`);
         console.log(`   GPU: ${this.gpuInfo.length} devices detected`);
+    }
+    /**
+     * Get available models
+     */
+    getAvailableModels() {
+        return this.executor.getAvailableModels();
+    }
+    /**
+     * Download a model
+     */
+    async downloadModel(modelId) {
+        return this.executor.downloadModel(modelId);
     }
     /**
      * Calculate how many shards this device can handle
