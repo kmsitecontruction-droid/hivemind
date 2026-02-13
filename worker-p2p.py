@@ -55,15 +55,16 @@ class HIVEMINDWorker:
             logger.info("Connected!")
             self.running = True
             
-            # Register with server
+            # Register with server (use worker:register for Node.js server)
             await self.send({
-                "type": "peer:register",
+                "type": "worker:register",
                 "payload": {
-                    "capabilities": {
-                        "model": self.config.model_id,
-                        "memory_mb": self.config.max_memory_mb,
-                        "shard_count": self.config.shard_count,
-                    }
+                    "hostname": "worker-" + str(os.getpid())[-4:],
+                    "cpuCores": os.cpu_count() or 4,
+                    "gpuInfo": [],
+                    "memoryBytes": self.config.max_memory_mb * 1024 * 1024,
+                    "storageBytes": 1024 * 1024 * 100,
+                    "userId": None
                 }
             })
             
@@ -99,25 +100,31 @@ class HIVEMINDWorker:
         msg_type = data.get("type")
         payload = data.get("payload", {})
         
-        if msg_type == "peer:registered":
+        # Handle Node.js server responses
+        if msg_type == "worker:registered":
             await self.handle_registered(payload)
         elif msg_type == "task:assigned":
             await self.handle_task_assigned(payload)
-        elif msg_type == "task:none":
+        elif msg_type == "task:none" or msg_type == "worker:no-task":
             logger.info("No tasks available, waiting...")
         elif msg_type == "model:selected":
             logger.info(f"Model changed to: {payload.get('model')}")
+        elif msg_type == "error":
+            logger.warning(f"Server error: {payload.get('message', 'unknown')}")
+        elif msg_type == "worker:status":
+            logger.info(f"Worker status: {payload}")
         else:
             logger.warning(f"Unknown message: {msg_type}")
     
     async def handle_registered(self, payload: dict):
         """Handle registration confirmation"""
-        self.config.peer_id = payload.get("peer_id")
+        # Handle Node.js server response format
+        self.config.peer_id = payload.get("workerId") or payload.get("peer_id")
         self.config.shards = payload.get("shards", [])
         
         logger.info(f"Registered as {self.config.peer_id}")
         logger.info(f"Assigned shards: {self.config.shards}")
-        logger.info(f"Total peers: {payload.get('total_peers')}")
+        logger.info(f"Total peers: {payload.get('total_peers', 'N/A')}")
         
         # Start requesting tasks
         asyncio.create_task(self.task_request_loop())
@@ -136,11 +143,11 @@ class HIVEMINDWorker:
         # Run inference
         result = await self.run_inference(prompt, model_id)
         
-        # Report completion
+        # Report completion (Node.js server format)
         await self.send({
-            "type": "task:complete",
+            "type": "worker:task-complete",
             "payload": {
-                "task_id": task_id,
+                "taskId": task_id,
                 "result": result
             }
         })
@@ -244,7 +251,7 @@ except Exception as e:
             await asyncio.sleep(2)  # Check every 2 seconds
             
             if self.current_task is None:
-                await self.send({"type": "task:request"})
+                await self.send({"type": "worker:request-task"})
     
     async def heartbeat_loop(self):
         """Send periodic heartbeats"""
