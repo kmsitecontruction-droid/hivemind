@@ -1,0 +1,27 @@
+{
+  "name": "@hive-ai/server",
+  "version": "0.1.0",
+  "description": "HIVEMIND Core Server - Coordinator for decentralized AI computing",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "db:migrate": "tsx src/db/migrate.ts"
+  },
+  "dependencies": {
+    "sql.js": "^1.10.3",
+    "ws": "^8.16.0",
+    "uuid": "^9.0.1",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "@types/ws": "^8.5.10",
+    "@types/uuid": "^9.0.8",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.11.16"
+  }
+}
